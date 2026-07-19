@@ -1,0 +1,39 @@
+{
+  "vimMode": true,
+  "promptDelete": false,
+  "alwaysUpdateLinks": true,
+  "strictLineBreaks": false,
+  "showLineNumber": true,
+  "mobileToolbarCommands": [
+    "insert-current-time",
+    "editor:add-cursor-above",
+    "omnisearch:show-modal",
+    "editor:toggle-checklist-status",
+    "insert-current-date",
+    "editor:set-heading",
+    "editor:toggle-bullet-list",
+    "editor:indent-list",
+    "editor:unindent-list",
+    "editor:toggle-numbered-list",
+    "editor:undo",
+    "editor:redo",
+    "editor:insert-horizontal-rule",
+    "highlightr-plugin:Process",
+    "highlightr-plugin:Thread",
+    "highlightr-plugin:Win",
+    "highlightr-plugin:Miss",
+    "highlightr-plugin:Thought",
+    "editor:insert-wikilink",
+    "editor:fold-all",
+    "editor:unfold-all",
+    "obsidian-minimal-settings:toggle-colorful-headings",
+    "editor:open-link-in-new-leaf",
+    "editor:configure-toolbar"
+  ],
+  "pdfExportSettings": {
+    "pageSize": "Letter",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  }
+}

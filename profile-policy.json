@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "appKeys": [
+    "vimMode",
+    "promptDelete",
+    "alwaysUpdateLinks",
+    "strictLineBreaks",
+    "showLineNumber",
+    "mobileToolbarCommands",
+    "pdfExportSettings"
+  ],
+  "files": [
+    "appearance.json",
+    "core-plugins.json",
+    "community-plugins.json",
+    "hotkeys.json",
+    "obsidian.vimrc",
+    "snippets",
+    "themes/Minimal"
+  ],
+  "jsonOverrides": {
+    "appearance.json": {
+      "cssTheme": "Minimal"
+    }
+  },
+  "pluginData": [
+    "advanced-paste",
+    "dataview",
+    "highlightr-plugin",
+    "note-refactor-obsidian",
+    "obsidian-minimal-settings",
+    "obsidian-outliner",
+    "obsidian-smart-typography",
+    "obsidian-tasks-plugin",
+    "obsidian-text-format",
+    "obsidian-vimrc-support",
+    "omnisearch",
+    "table-editor-obsidian"
+  ]
+}

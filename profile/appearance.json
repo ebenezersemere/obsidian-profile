@@ -1,0 +1,9 @@
+{
+  "translucency": false,
+  "cssTheme": "Minimal",
+  "showRibbon": false,
+  "enabledCssSnippets": [
+    "callouts"
+  ],
+  "accentColor": ""
+}

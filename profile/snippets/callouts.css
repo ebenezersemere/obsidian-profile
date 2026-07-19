@@ -1,0 +1,90 @@
+/* Shared callout palette — keep daily sections visually consistent. */
+.callout[data-callout="navigation"],
+.callout[data-callout="time"],
+.callout[data-callout="projects"],
+.callout[data-callout="knowledge"],
+.callout[data-callout="flagged"],
+.callout[data-callout="completions"] {
+  --callout-color: 130, 170, 255;
+}
+
+.callout[data-callout="navigation"]  { --callout-icon: route; }
+.callout[data-callout="time"]        { --callout-icon: calendar; }
+.callout[data-callout="projects"]    { --callout-icon: target; }
+.callout[data-callout="knowledge"]   { --callout-icon: brain; }
+.callout[data-callout="flagged"]     { --callout-icon: flag; }
+.callout[data-callout="completions"] { --callout-icon: check-check; }
+
+.callout[data-callout="navigation"]  .callout-title-inner,
+.callout[data-callout="time"]        .callout-title-inner,
+.callout[data-callout="projects"]    .callout-title-inner,
+.callout[data-callout="knowledge"]   .callout-title-inner,
+.callout[data-callout="flagged"]     .callout-title-inner,
+.callout[data-callout="completions"] .callout-title-inner {
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+/* Time grid: monospace alignment for the hour rows + colored blocks */
+.callout[data-callout="time"] {
+  font-family: var(--font-monospace);
+}
+
+/* Tighter list spacing inside daily-section callouts so the cards read compactly. */
+.callout[data-callout="projects"] ul,
+.callout[data-callout="knowledge"] ul,
+.callout[data-callout="flagged"] ul,
+.callout[data-callout="completions"] ul {
+  margin: 0.3em 0;
+  padding-left: 1.2em;
+}
+
+.callout[data-callout="projects"] li,
+.callout[data-callout="knowledge"] li,
+.callout[data-callout="flagged"] li,
+.callout[data-callout="completions"] li {
+  margin: 0.15em 0;
+}
+
+/* Dim Dataview's "no results" text inside these callouts. */
+.callout[data-callout="projects"] .dataview.dataview-empty,
+.callout[data-callout="knowledge"] .dataview.dataview-empty {
+  opacity: 0.45;
+  font-style: italic;
+}
+
+/* Drop the external-link glyph on OmniFocus links — every entry in these
+   callouts is a link, so the indicator is redundant clutter. */
+.callout[data-callout="flagged"] a.external-link,
+.callout[data-callout="completions"] a.external-link {
+  background-image: none;
+  padding-inline-end: 0;
+}
+.callout[data-callout="flagged"] a.external-link::after,
+.callout[data-callout="completions"] a.external-link::after {
+  content: none;
+}
+
+/* Read-mode header styling — applied globally; avoids :has() breakage from
+   Obsidian's virtual scroller unmounting the time callout off-screen. */
+.markdown-preview-view h1 {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: rgb(130, 170, 255);
+  border-bottom: 1px solid rgba(130, 170, 255, 0.18);
+  padding-bottom: 0.25em;
+  margin-top: 1.6em;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.markdown-preview-view h5 {
+  color: rgb(130, 170, 255);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Hide --- dividers in read mode — h1 underline is the visual separator. */
+.markdown-preview-view hr {
+  display: none;
+}

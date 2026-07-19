@@ -1,0 +1,18 @@
+{
+  "highlighterStyle": "realistic",
+  "highlighterMethods": "inline-styles",
+  "highlighters": {
+    "Miss": "#FF0075",
+    "Process": "#FFD700",
+    "Win": "#00FFBB",
+    "Thread": "#FFFF00",
+    "Thought": "#0075FF"
+  },
+  "highlighterOrder": [
+    "Miss",
+    "Process",
+    "Win",
+    "Thread",
+    "Thought"
+  ]
+}

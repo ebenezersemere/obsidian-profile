@@ -1,0 +1,15 @@
+{
+  "scriptDir": "advpaste",
+  "turndown": {
+    "headingStyle": "atx",
+    "hr": "* * *",
+    "bulletListMarker": "-",
+    "codeBlockStyle": "fenced",
+    "fence": "```",
+    "emDelimiter": "*",
+    "strongDelimiter": "**",
+    "linkStyle": "inlined",
+    "linkReferenceStyle": "full"
+  },
+  "enhanceDefaultPaste": false
+}
