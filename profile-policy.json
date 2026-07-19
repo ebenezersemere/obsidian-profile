@@ -18,11 +18,7 @@
     "snippets",
     "themes/Minimal"
   ],
-  "jsonOverrides": {
-    "appearance.json": {
-      "cssTheme": "Minimal"
-    }
-  },
+  "jsonOverrides": {},
   "pluginData": [
     "advanced-paste",
     "dataview",

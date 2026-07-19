@@ -49,7 +49,7 @@ bin/obsidian-profile bundle-plugins /Users/ebenezersemere/repos/ezer/memory
 python3 -m unittest discover -s tests -v
 ```
 
-`capture` copies only files and plugin preferences allowlisted by `profile-policy.json`. `app.json` is reduced to explicitly portable keys. JSON overrides enforce decisions such as selecting the Minimal theme even if the source vault is temporarily using another theme.
+`capture` copies only files and plugin preferences allowlisted by `profile-policy.json`. `app.json` is reduced to explicitly portable keys. The captured appearance keeps Obsidian's default theme selected; installed themes remain available but inactive.
 
 `bundle-plugins` copies the exact enabled plugin artifacts and regenerates `plugin-lock.json` with versions and SHA-256 checksums. Installation is therefore pinned and works offline.
 
@@ -61,7 +61,7 @@ Included:
 
 - Vim mode, line numbers, editing behavior, and mobile toolbar commands
 - Hotkeys and `obsidian.vimrc`
-- Minimal theme and the `callouts.css` snippet
+- Obsidian's default theme, with the installed Minimal theme available but inactive, and the `callouts.css` snippet
 - Enabled core and community plugin lists
 - Exact bundled plugin releases
 - Allowlisted portable plugin preferences
