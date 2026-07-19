@@ -16,7 +16,7 @@ The installer uses only Python's standard library. It does not download code or 
 
 ```bash
 mkdir -p ~/vaults/example
-/Users/ebenezersemere/repos/obsidian-profile/bin/obsidian-profile install ~/vaults/example
+./bin/obsidian-profile install ~/vaults/example
 ```
 
 The command copies the managed baseline to `VAULT/.obsidian`, verifies every bundled plugin checksum before changing the vault, and writes installation state to `VAULT/.obsidian-profile/state.json`.
@@ -44,8 +44,8 @@ Exit status is zero when every managed file matches the profile. Missing and dri
 Close Obsidian first, then run:
 
 ```bash
-bin/obsidian-profile capture /Users/ebenezersemere/repos/ezer/memory
-bin/obsidian-profile bundle-plugins /Users/ebenezersemere/repos/ezer/memory
+bin/obsidian-profile capture /path/to/source-vault
+bin/obsidian-profile bundle-plugins /path/to/source-vault
 python3 -m unittest discover -s tests -v
 ```
 
