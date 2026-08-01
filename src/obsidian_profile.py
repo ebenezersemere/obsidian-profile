@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install and verify a portable Obsidian configuration profile."""
+"""Link, synchronize, install, and verify a portable Obsidian profile."""
 
 from __future__ import annotations
 
@@ -101,6 +101,15 @@ def _reject_symlink_path(root: Path, relative: Path) -> None:
         current = current / part
         if current.is_symlink():
             raise ProfileError(f"refusing to use symbolic link: {current}")
+
+
+def _reject_symlink_parents(root: Path, relative: Path) -> None:
+    """Reject symlinked parents while allowing the final path to be a link."""
+    current = root
+    for part in relative.parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            raise ProfileError(f"refusing to use symbolic link as a parent: {current}")
 
 
 def _reject_symlink_tree(path: Path) -> None:
@@ -217,6 +226,20 @@ def _profile_files(profile_root: Path) -> Iterable[ManagedSource]:
             yield ManagedSource(source, Path(".obsidian") / source.relative_to(source_root))
 
 
+def _vault_profile_files(profile_root: Path) -> Iterable[ManagedSource]:
+    """Files stored under vault-profile are linked at the vault root."""
+    source_root = profile_root / "vault-profile"
+    if not source_root.exists():
+        return
+    if source_root.is_symlink() or not source_root.is_dir():
+        raise ProfileError(f"vault-profile must be a real directory: {source_root}")
+    for source in sorted(source_root.rglob("*")):
+        if source.is_symlink():
+            raise ProfileError(f"vault-profile contains a symbolic link: {source}")
+        if source.is_file():
+            yield ManagedSource(source, source.relative_to(source_root))
+
+
 def _plugin_files(profile_root: Path, plugins: Sequence[dict]) -> Iterable[ManagedSource]:
     for plugin in plugins:
         plugin_id = plugin["id"]
@@ -240,7 +263,11 @@ def _plugin_files(profile_root: Path, plugins: Sequence[dict]) -> Iterable[Manag
 def _planned_sources(profile_root: Path, lock) -> List[ManagedSource]:
     _reject_symlink_path(profile_root, Path("plugin-lock.json"))
     plugins = _validate_lock(lock)
-    planned = list(_profile_files(profile_root)) + list(_plugin_files(profile_root, plugins))
+    planned = (
+        list(_profile_files(profile_root))
+        + list(_vault_profile_files(profile_root))
+        + list(_plugin_files(profile_root, plugins))
+    )
     destinations = [item.destination.as_posix() for item in planned]
     if len(destinations) != len(set(destinations)):
         raise ProfileError("the profile and plugin lock manage the same destination")
@@ -279,6 +306,25 @@ def _atomic_copy(source: Path, destination: Path) -> None:
         os.replace(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _atomic_symlink(target: Path, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.parent / f".{destination.name}.link.{uuid.uuid4().hex}"
+    try:
+        temporary.symlink_to(target)
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _symlink_points_to(path: Path, target: Path) -> bool:
+    if not path.is_symlink():
+        return False
+    try:
+        return (path.parent / os.readlink(path)).resolve() == target.resolve()
+    except OSError:
+        return False
 
 
 def _stage_json(destination: Path, value) -> Path:
@@ -361,22 +407,156 @@ def install_profile(profile_root: Path, vault: Path) -> InstallResult:
     return InstallResult(install_id=install_id, copied=len(planned), backed_up=backed_up)
 
 
+def link_profile(profile_root: Path, vault: Path) -> InstallResult:
+    """Link portable settings into a vault and copy pinned plugin artifacts."""
+    profile_root = Path(profile_root).expanduser().resolve()
+    vault = _real_directory(vault, "vault")
+    policy = _validate_policy(_load_json(profile_root / "profile-policy.json"))
+    lock = _load_json(profile_root / "plugin-lock.json")
+    planned = _planned_sources(profile_root, lock)
+    prepared = _prepare_sources(planned)
+
+    for item in planned:
+        _reject_symlink_parents(vault, item.destination)
+    _reject_symlink_path(vault, Path(".obsidian-profile"))
+
+    install_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    backup_root = vault / ".obsidian-profile/backups" / install_id
+    backed_up = 0
+    managed: Dict[str, str] = {}
+    linked: Dict[str, str] = {}
+
+    for item, ready in zip(planned, prepared):
+        destination = vault / item.destination
+        name = item.destination.as_posix()
+        is_profile_file = item.source.is_relative_to(profile_root / "profile")
+        is_vault_profile_file = item.source.is_relative_to(profile_root / "vault-profile")
+        is_linked_file = is_profile_file or is_vault_profile_file
+        is_app = item.source == profile_root / "profile/app.json"
+
+        if is_app:
+            source_app = _require_object(_load_json(item.source), "profile app.json")
+            if destination.is_symlink():
+                raise ProfileError(f"app.json cannot be linked because it contains vault-local settings: {destination}")
+            if destination.exists():
+                vault_app = _require_object(_load_json(destination), "vault app.json")
+            else:
+                vault_app = {}
+            merged = dict(vault_app)
+            for key in policy["appKeys"]:
+                if key in source_app:
+                    merged[key] = source_app[key]
+                else:
+                    merged.pop(key, None)
+            serialized = json.dumps(merged, indent=2, sort_keys=True) + "\n"
+            if not destination.is_file() or destination.read_text(encoding="utf-8") != serialized:
+                if destination.exists():
+                    _atomic_copy(destination, backup_root / item.destination)
+                    backed_up += 1
+                _atomic_json(destination, merged)
+            managed[name] = _sha256(destination)
+        elif is_linked_file:
+            if _symlink_points_to(destination, item.source):
+                linked[name] = str(item.source)
+                managed[name] = ready.sha256
+                continue
+            if destination.exists() or destination.is_symlink():
+                if not destination.is_file() or destination.is_symlink() or _sha256(destination) != ready.sha256:
+                    backup = backup_root / item.destination
+                    backup.parent.mkdir(parents=True, exist_ok=True)
+                    os.replace(destination, backup)
+                    backed_up += 1
+                else:
+                    destination.unlink()
+            _atomic_symlink(item.source, destination)
+            linked[name] = str(item.source)
+            managed[name] = ready.sha256
+        else:
+            _reject_symlink_path(vault, item.destination)
+            if destination.exists() and _sha256(destination) != ready.sha256:
+                _atomic_copy(destination, backup_root / item.destination)
+                backed_up += 1
+            _atomic_copy(item.source, destination)
+            if _sha256(destination) != ready.sha256:
+                raise ProfileError(f"source changed while copying {name}; rerun link")
+            managed[name] = ready.sha256
+
+    state = {
+        "schemaVersion": 2,
+        "mode": "linked",
+        "profileRoot": str(profile_root),
+        "installId": install_id,
+        "installedAt": datetime.now(timezone.utc).isoformat(),
+        "managedFiles": managed,
+        "linkedFiles": linked,
+    }
+    _atomic_json(vault / ".obsidian-profile/state.json", state)
+    return InstallResult(install_id=install_id, copied=len(planned), backed_up=backed_up)
+
+
 def verify_vault(profile_root: Path, vault: Path) -> VerifyReport:
     profile_root = Path(profile_root).expanduser().resolve()
     vault = _real_directory(vault, "vault")
     lock = _load_json(profile_root / "plugin-lock.json")
-    planned = _prepare_sources(_planned_sources(profile_root, lock))
+    planned_sources = _planned_sources(profile_root, lock)
+    planned = _prepare_sources(planned_sources)
+    state_path = vault / ".obsidian-profile/state.json"
+    state = _load_json(state_path) if state_path.is_file() else {}
+    linked_mode = isinstance(state, dict) and state.get("mode") == "linked"
+    policy = _validate_policy(_load_json(profile_root / "profile-policy.json")) if linked_mode else None
     missing: List[str] = []
     drifted: List[str] = []
-    for item in planned:
-        _reject_symlink_path(vault, item.destination)
+    for source, item in zip(planned_sources, planned):
         destination = vault / item.destination
         name = item.destination.as_posix()
-        if not destination.is_file():
-            missing.append(name)
-        elif _sha256(destination) != item.sha256:
-            drifted.append(name)
+        is_profile_file = source.source.is_relative_to(profile_root / "profile")
+        is_vault_profile_file = source.source.is_relative_to(profile_root / "vault-profile")
+        is_linked_file = is_profile_file or is_vault_profile_file
+        is_app = source.source == profile_root / "profile/app.json"
+        if linked_mode and is_app:
+            if not destination.is_file() or destination.is_symlink():
+                missing.append(name)
+                continue
+            profile_app = _require_object(_load_json(source.source), "profile app.json")
+            vault_app = _require_object(_load_json(destination), "vault app.json")
+            if any(profile_app.get(key) != vault_app.get(key) for key in policy["appKeys"]):
+                drifted.append(name)
+        elif linked_mode and is_linked_file:
+            if not destination.exists() and not destination.is_symlink():
+                missing.append(name)
+            elif not _symlink_points_to(destination, source.source):
+                drifted.append(name)
+        else:
+            _reject_symlink_path(vault, item.destination)
+            if not destination.is_file():
+                missing.append(name)
+            elif _sha256(destination) != item.sha256:
+                drifted.append(name)
     return VerifyReport(missing=missing, drifted=drifted)
+
+
+def sync_profile(profile_root: Path, source_vault: Path, target_vaults: Sequence[Path]) -> int:
+    """Capture mixed app settings from one vault and apply the linked profile."""
+    profile_root = Path(profile_root).expanduser().resolve()
+    source_vault = _real_directory(source_vault, "source vault")
+    policy = _validate_policy(_load_json(profile_root / "profile-policy.json"))
+    source_app_path = source_vault / ".obsidian/app.json"
+    _reject_symlink_path(source_vault, Path(".obsidian/app.json"))
+    source_app = _require_object(_load_json(source_app_path), "source app.json")
+    portable_app = {key: source_app[key] for key in policy["appKeys"] if key in source_app}
+    _atomic_json(profile_root / "profile/app.json", portable_app)
+
+    vaults = []
+    seen = set()
+    for value in (source_vault, *target_vaults):
+        vault = _real_directory(value, "vault")
+        canonical = str(vault)
+        if canonical not in seen:
+            seen.add(canonical)
+            vaults.append(vault)
+    for vault in vaults:
+        link_profile(profile_root, vault)
+    return len(vaults)
 
 
 def capture_profile(profile_root: Path, vault: Path) -> int:
@@ -560,13 +740,17 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile-root", type=Path, default=Path(__file__).resolve().parents[1])
     subparsers = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
-        ("install", "install the profile into a vault"),
+        ("install", "copy the profile into a vault"),
+        ("link", "link portable settings and install pinned plugins"),
         ("verify", "check a vault for profile drift"),
         ("capture", "capture allowlisted settings from a source vault"),
         ("bundle-plugins", "bundle enabled plugins from a source vault"),
     ):
         command = subparsers.add_parser(name, help=help_text)
         command.add_argument("vault", type=Path)
+    sync = subparsers.add_parser("sync", help="capture mixed settings from a source and link one or more vaults")
+    sync.add_argument("source", type=Path)
+    sync.add_argument("vaults", type=Path, nargs="*")
     return parser
 
 
@@ -576,6 +760,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "install":
             result = install_profile(args.profile_root, args.vault)
             print(f"installed {result.copied} files; backed up {result.backed_up}; install id {result.install_id}")
+        elif args.command == "link":
+            result = link_profile(args.profile_root, args.vault)
+            print(f"linked profile across {result.copied} managed files; backed up {result.backed_up}; install id {result.install_id}")
+        elif args.command == "sync":
+            synced = sync_profile(args.profile_root, args.source, args.vaults)
+            print(f"synced portable app settings and linked {synced} vaults")
         elif args.command == "capture":
             copied = capture_profile(args.profile_root, args.vault)
             print(f"captured {copied} portable settings files")

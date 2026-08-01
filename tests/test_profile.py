@@ -16,6 +16,8 @@ from obsidian_profile import (
     bundle_plugins,
     capture_profile,
     install_profile,
+    link_profile,
+    sync_profile,
     verify_vault,
 )
 
@@ -92,6 +94,142 @@ class ProfileTests(unittest.TestCase):
             self.assertEqual(json.loads(backup.read_text()), {"vimMode": False})
             state = json.loads((vault / ".obsidian-profile/state.json").read_text())
             self.assertIn(".obsidian/app.json", state["managedFiles"])
+
+    def test_link_shares_portable_files_and_preserves_local_app_keys(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "profile-repo"
+            vault = root / "vault"
+            write(profile / "profile/app.json", '{"vimMode": true}\n')
+            write(profile / "profile/hotkeys.json", '{"command": []}\n')
+            write(profile / "profile/snippets/shared.css", "body {}\n")
+            write(profile / "vault-profile/templates/shared.md", "# Shared template\n")
+            write(profile / "plugin-lock.json", '{"schemaVersion": 1, "plugins": []}\n')
+            write(profile / "profile-policy.json", json.dumps({
+                "schemaVersion": 1,
+                "appKeys": ["vimMode"],
+                "files": ["hotkeys.json", "snippets"],
+                "pluginData": [],
+                "jsonOverrides": {},
+            }))
+            write(vault / ".obsidian/app.json", json.dumps({
+                "vimMode": False,
+                "attachmentFolderPath": "local/attachments",
+            }))
+            write(vault / ".obsidian/hotkeys.json", '{"old": true}\n')
+
+            result = link_profile(profile, vault)
+
+            app = json.loads((vault / ".obsidian/app.json").read_text())
+            self.assertTrue(app["vimMode"])
+            self.assertEqual(app["attachmentFolderPath"], "local/attachments")
+            hotkeys = vault / ".obsidian/hotkeys.json"
+            snippet = vault / ".obsidian/snippets/shared.css"
+            template = vault / "templates/shared.md"
+            self.assertTrue(hotkeys.is_symlink())
+            self.assertEqual(hotkeys.resolve(), (profile / "profile/hotkeys.json").resolve())
+            self.assertTrue(snippet.is_symlink())
+            self.assertTrue(template.is_symlink())
+            self.assertEqual(template.resolve(), (profile / "vault-profile/templates/shared.md").resolve())
+            write(hotkeys, '{"changed": true}\n')
+            self.assertEqual(json.loads((profile / "profile/hotkeys.json").read_text()), {"changed": True})
+            backup = vault / ".obsidian-profile/backups" / result.install_id / ".obsidian/hotkeys.json"
+            self.assertEqual(json.loads(backup.read_text()), {"old": True})
+            self.assertTrue(verify_vault(profile, vault).ok)
+
+    def test_link_verify_detects_replaced_link_and_relink_repairs_it(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "profile-repo"
+            vault = root / "vault"
+            write(profile / "profile/app.json", "{}\n")
+            write(profile / "profile/hotkeys.json", "{}\n")
+            write(profile / "plugin-lock.json", '{"schemaVersion": 1, "plugins": []}\n')
+            write(profile / "profile-policy.json", json.dumps({
+                "schemaVersion": 1,
+                "appKeys": [],
+                "files": ["hotkeys.json"],
+                "pluginData": [],
+                "jsonOverrides": {},
+            }))
+            vault.mkdir()
+            link_profile(profile, vault)
+            hotkeys = vault / ".obsidian/hotkeys.json"
+            hotkeys.unlink()
+            write(hotkeys, "{}\n")
+
+            report = verify_vault(profile, vault)
+            self.assertEqual(report.drifted, [".obsidian/hotkeys.json"])
+
+            link_profile(profile, vault)
+            self.assertTrue(hotkeys.is_symlink())
+            self.assertTrue(verify_vault(profile, vault).ok)
+
+    def test_sync_captures_portable_app_keys_and_preserves_each_vault_local_keys(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "profile-repo"
+            source = root / "personal"
+            target = root / "work"
+            write(profile / "profile/app.json", '{"vimMode": false}\n')
+            write(profile / "profile/hotkeys.json", "{}\n")
+            write(profile / "plugin-lock.json", '{"schemaVersion": 1, "plugins": []}\n')
+            write(profile / "profile-policy.json", json.dumps({
+                "schemaVersion": 1,
+                "appKeys": ["vimMode", "showLineNumber"],
+                "files": ["hotkeys.json"],
+                "pluginData": [],
+                "jsonOverrides": {},
+            }))
+            write(source / ".obsidian/app.json", json.dumps({
+                "vimMode": True,
+                "showLineNumber": True,
+                "attachmentFolderPath": "personal/files",
+            }))
+            write(target / ".obsidian/app.json", json.dumps({
+                "vimMode": False,
+                "attachmentFolderPath": "work/files",
+            }))
+
+            count = sync_profile(profile, source, [target])
+
+            self.assertEqual(count, 2)
+            self.assertEqual(json.loads((profile / "profile/app.json").read_text()), {
+                "showLineNumber": True,
+                "vimMode": True,
+            })
+            personal = json.loads((source / ".obsidian/app.json").read_text())
+            work = json.loads((target / ".obsidian/app.json").read_text())
+            self.assertEqual(personal["attachmentFolderPath"], "personal/files")
+            self.assertEqual(work["attachmentFolderPath"], "work/files")
+            self.assertTrue(work["vimMode"])
+            self.assertTrue(work["showLineNumber"])
+            self.assertTrue(verify_vault(profile, source).ok)
+            self.assertTrue(verify_vault(profile, target).ok)
+
+    def test_link_keeps_plugin_artifacts_as_regular_files(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "profile-repo"
+            vault = root / "vault"
+            write(profile / "profile/app.json", "{}\n")
+            lock = plugin_lock(profile)
+            write(profile / "plugin-lock.json", json.dumps(lock))
+            write(profile / "profile-policy.json", json.dumps({
+                "schemaVersion": 1,
+                "appKeys": [],
+                "files": [],
+                "pluginData": [],
+                "jsonOverrides": {},
+            }))
+            vault.mkdir()
+
+            link_profile(profile, vault)
+
+            artifact = vault / ".obsidian/plugins/example/main.js"
+            self.assertTrue(artifact.is_file())
+            self.assertFalse(artifact.is_symlink())
+            self.assertTrue(verify_vault(profile, vault).ok)
 
     def test_install_preserves_unmanaged_vault_state(self):
         with tempfile.TemporaryDirectory() as td:

@@ -48,7 +48,8 @@
 
 /* Dim Dataview's "no results" text inside these callouts. */
 .callout[data-callout="projects"] .dataview.dataview-empty,
-.callout[data-callout="knowledge"] .dataview.dataview-empty {
+.callout[data-callout="knowledge"] .dataview.dataview-empty,
+.callout[data-callout="memory"] .dataview.dataview-empty {
   opacity: 0.45;
   font-style: italic;
 }
@@ -63,6 +64,27 @@
 .callout[data-callout="flagged"] a.external-link::after,
 .callout[data-callout="completions"] a.external-link::after {
   content: none;
+}
+
+/* memory callout — #0075FF tint, used for the memory notes touched today. */
+.callout[data-callout="memory"] {
+  --callout-color: 0, 117, 255;
+  --callout-icon: brain;
+  background-color: rgba(0, 117, 255, 0.12);
+}
+
+.callout[data-callout="memory"] .callout-title-inner {
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.callout[data-callout="memory"] ul {
+  margin: 0.3em 0;
+  padding-left: 1.2em;
+}
+
+.callout[data-callout="memory"] li {
+  margin: 0.15em 0;
 }
 
 /* Read-mode header styling — applied globally; avoids :has() breakage from
