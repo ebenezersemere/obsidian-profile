@@ -31,6 +31,8 @@
     "obsidian-text-format",
     "obsidian-vimrc-support",
     "omnisearch",
-    "table-editor-obsidian"
+    "periodic-notes",
+    "table-editor-obsidian",
+    "templater-obsidian"
   ]
 }
