@@ -1,94 +1,36 @@
 /* Shared callout palette — keep daily sections visually consistent. */
 .callout[data-callout="navigation"],
-.callout[data-callout="time"],
-.callout[data-callout="projects"],
-.callout[data-callout="knowledge"],
-.callout[data-callout="flagged"],
-.callout[data-callout="completions"] {
+.callout[data-callout="knowledge"] {
   --callout-color: 130, 170, 255;
 }
 
 .callout[data-callout="navigation"]  { --callout-icon: route; }
-.callout[data-callout="time"]        { --callout-icon: calendar; }
-.callout[data-callout="projects"]    { --callout-icon: target; }
 .callout[data-callout="knowledge"]   { --callout-icon: brain; }
-.callout[data-callout="flagged"]     { --callout-icon: flag; }
-.callout[data-callout="completions"] { --callout-icon: check-check; }
 
-.callout[data-callout="navigation"]  .callout-title-inner,
-.callout[data-callout="time"]        .callout-title-inner,
-.callout[data-callout="projects"]    .callout-title-inner,
-.callout[data-callout="knowledge"]   .callout-title-inner,
-.callout[data-callout="flagged"]     .callout-title-inner,
-.callout[data-callout="completions"] .callout-title-inner {
+.callout[data-callout="navigation"] .callout-title-inner,
+.callout[data-callout="knowledge"]  .callout-title-inner {
   text-transform: lowercase;
   letter-spacing: 0.02em;
 }
 
-/* Time grid: monospace alignment for the hour rows + colored blocks */
-.callout[data-callout="time"] {
-  font-family: var(--font-monospace);
-}
-
-/* Tighter list spacing inside daily-section callouts so the cards read compactly. */
-.callout[data-callout="projects"] ul,
-.callout[data-callout="knowledge"] ul,
-.callout[data-callout="flagged"] ul,
-.callout[data-callout="completions"] ul {
+/* Tighter list spacing inside the knowledge callout so entries read compactly. */
+.callout[data-callout="knowledge"] ul {
   margin: 0.3em 0;
   padding-left: 1.2em;
 }
 
-.callout[data-callout="projects"] li,
-.callout[data-callout="knowledge"] li,
-.callout[data-callout="flagged"] li,
-.callout[data-callout="completions"] li {
+.callout[data-callout="knowledge"] li {
   margin: 0.15em 0;
 }
 
-/* Dim Dataview's "no results" text inside these callouts. */
-.callout[data-callout="projects"] .dataview.dataview-empty,
-.callout[data-callout="knowledge"] .dataview.dataview-empty,
-.callout[data-callout="memory"] .dataview.dataview-empty {
+/* Dim Dataview's "no results" text inside the knowledge callout. */
+.callout[data-callout="knowledge"] .dataview.dataview-empty {
   opacity: 0.45;
   font-style: italic;
 }
 
-/* Drop the external-link glyph on OmniFocus links — every entry in these
-   callouts is a link, so the indicator is redundant clutter. */
-.callout[data-callout="flagged"] a.external-link,
-.callout[data-callout="completions"] a.external-link {
-  background-image: none;
-  padding-inline-end: 0;
-}
-.callout[data-callout="flagged"] a.external-link::after,
-.callout[data-callout="completions"] a.external-link::after {
-  content: none;
-}
-
-/* memory callout — #0075FF tint, used for the memory notes touched today. */
-.callout[data-callout="memory"] {
-  --callout-color: 0, 117, 255;
-  --callout-icon: brain;
-  background-color: rgba(0, 117, 255, 0.12);
-}
-
-.callout[data-callout="memory"] .callout-title-inner {
-  text-transform: lowercase;
-  letter-spacing: 0.02em;
-}
-
-.callout[data-callout="memory"] ul {
-  margin: 0.3em 0;
-  padding-left: 1.2em;
-}
-
-.callout[data-callout="memory"] li {
-  margin: 0.15em 0;
-}
-
 /* Read-mode header styling — applied globally; avoids :has() breakage from
-   Obsidian's virtual scroller unmounting the time callout off-screen. */
+   Obsidian's virtual scroller unmounting callouts off-screen. */
 .markdown-preview-view h1 {
   font-size: 1.3em;
   font-weight: 600;
