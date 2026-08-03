@@ -275,25 +275,6 @@
       }
     },
     {
-      "id": "obsidian-to-anki-plugin",
-      "version": "3.6.0",
-      "source": "https://github.com/Pseudonium/Obsidian_to_Anki",
-      "files": {
-        "manifest.json": {
-          "path": "artifacts/plugins/obsidian-to-anki-plugin/manifest.json",
-          "sha256": "4b3cca423266a8ac882935405ef083452fed5499b33811a88647b5364597fb3e"
-        },
-        "main.js": {
-          "path": "artifacts/plugins/obsidian-to-anki-plugin/main.js",
-          "sha256": "517ab4752eda16e6981da543061342bb74fe2baea39661d051333f78b53226de"
-        },
-        "styles.css": {
-          "path": "artifacts/plugins/obsidian-to-anki-plugin/styles.css",
-          "sha256": "8afdee180ac041e61d2c0d053e1c953aa476d95c632a2bbe633ea57c3eff2c13"
-        }
-      }
-    },
-    {
       "id": "obsidian-kindle-plugin",
       "version": "1.9.2",
       "source": "hadynz/obsidian-kindle-plugin",

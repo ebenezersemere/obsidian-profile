@@ -153,7 +153,6 @@ Deliberately excluded:
 - Shell Commands entries invoking vault-local scripts
 - Excalidraw folder paths
 - Kindle account/sync state and highlights path
-- Obsidian-to-Anki file hashes and vault-specific export state
 
 Change the configuration boundary through `profile-policy.json`; add shared vault-root files deliberately under `vault-profile/`.
 
