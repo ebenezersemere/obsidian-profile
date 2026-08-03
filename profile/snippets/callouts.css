@@ -1,7 +1,8 @@
 /* Shared callout palette — keep daily sections visually consistent. */
 .callout[data-callout="navigation"],
 .callout[data-callout="knowledge"] {
-  --callout-color: 130, 170, 255;
+  --callout-color: 0, 117, 255;
+  background-color: rgba(0, 117, 255, 0.12);
 }
 
 .callout[data-callout="navigation"]  { --callout-icon: route; }
