@@ -11,10 +11,6 @@ const quarter = `Q${day.quarter()}, ${day.year()}`;
 const year    = `${day.year()}`;
 const iso     = day.format("YYYY-MM-DD");
 -%>
----
-date: <% iso %>
----
-
 > [!navigation]+ navigation
 > [[<% yesterday %>|← yesterday]] · [[<% tomorrow %>|tomorrow →]] · [[<% week %>|W<% day.format("ww") %>]] · [[<% month %>|<% day.format("MMM") %>]] · [[<% quarter %>|Q<% day.quarter() %>]] · [[<% year %>]]
 
@@ -22,7 +18,7 @@ date: <% iso %>
 > ```dataview
 > LIST WITHOUT ID file.link
 > FROM "knowledge"
-> WHERE file.mday = this.file.day
+> WHERE dateformat(file.mday, "yyyy-MM-dd") = "<% iso %>"
 > SORT file.mtime DESC
 > LIMIT 10
 > ```
