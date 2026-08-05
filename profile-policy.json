@@ -14,6 +14,7 @@
     "core-plugins.json",
     "community-plugins.json",
     "hotkeys.json",
+    "templates.json",
     "obsidian.vimrc",
     "snippets",
     "themes/Minimal"

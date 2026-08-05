@@ -140,6 +140,7 @@ Included:
 - Hotkeys and `obsidian.vimrc`
 - Appearance, themes, and CSS snippets
 - Enabled core and community plugin lists
+- Core Templates date and time formats
 - Exact bundled plugin releases
 - Allowlisted portable plugin preferences
 - Explicit files under `vault-profile/`, such as shared templates
@@ -149,7 +150,7 @@ Deliberately excluded:
 - `workspace*.json`, caches, graph state, bookmarks, Publish state, and recent files
 - New-note and attachment folder paths
 - Homepage configuration
-- Vault-specific template paths and Templater folder rules
+- Templater folder rules pointing at vault-local template or script directories
 - Shell Commands entries invoking vault-local scripts
 - Excalidraw folder paths
 - Kindle account/sync state and highlights path
